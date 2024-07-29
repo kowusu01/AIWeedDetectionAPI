@@ -1,0 +1,23 @@
+
+# list conda envs
+# - conda env list
+
+# use conda to create an empty env
+# - conda env create -f environment.yml
+# 
+# use conda to list envs to verify your new env was created
+# - conda env list
+
+# activate the new env
+# - conda activate grass_project
+
+# install your packages into the environment
+#   - pip install -r requirements.txt
+
+name: grass_project
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - pip

@@ -1,0 +1,40 @@
+grass-weed-classification
+
+SDK Reference: 
+https://docs.microsoft.com/en-us/python/api/overview/azure/ml/?view=azure-ml-py
+https://learn.microsoft.com/en-us/python/api/azure-cognitiveservices-vision-customvision/azure.cognitiveservices.vision.customvision?view=azure-python
+
+
+code
+- set up new project
+- create env with conda
+- add environment and requirements.txt
+- install packages
+
+Core processing:
+- the core part of the code involves a few steps
+ 1. the code can handle two types of input
+  - an image url pointing to a file stored in my storage account
+  - an image file in bytes
+ 2. the code then sends the image to the custom vision model
+ 3. the model returns a prediction for areas of grass and weed in the selected image
+ 4. the code then returns the top n predictions to the user
+    - a copy of the images is annotated (marked with rectangles) 
+     with the predictions and saved in the storage account.
+     - a json file is also saved with the predictions
+ 6. the code returns the url of the annotated image to the user
+
+
+in azure portal
+- create resource
+- create storage (blob storage) and associated container
+- upload your data
+
+
+sample test-image# sample:
+test-5-mixed.JPG
+https://kotclassificationstorage.blob.core.windows.net/kot-grass-container/test-5-mixed.JPG
+
+
+
+

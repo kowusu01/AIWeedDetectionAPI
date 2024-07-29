@@ -1,0 +1,39 @@
+
+# run this file after your environment is created and activated
+
+# install packages
+#   pip install -r requirements.txt
+
+
+# packages
+#   - python-dotenv - for reading .env file
+python-dotenv
+
+# for azure app configuration in the cloud
+azure-appconfiguration-provider
+
+# for local image processing
+matplotlib
+
+# python image manipulation
+pillow
+
+####################################################
+# azure services
+# for azure Identity
+azure-identity
+azure-storage-blob
+
+# VISION SDK
+# - training image classification model using Azure AI Custom Vision - lab-17-image-classification
+# - training object detection model using Azure AI Custom Vision - lab-18-object-detection
+azure-cognitiveservices-vision-customvision
+
+
+# api related
+fastapi
+pydantic
+uvicorn
+
+# for reasing images from url e.g. azure blob storage
+requests

@@ -1,0 +1,10 @@
+manual setup
+1. create azure storage account 
+2. upload at least one image that has the items you want to detect
+3. create a dataset for the project
+4. create the labels
+  - identify the objects in the image and label them
+  - the labels are called tags
+
+code and automation
+- create a folder for all the images

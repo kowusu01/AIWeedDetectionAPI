@@ -1,0 +1,112 @@
+
+Deployment Steps
+------------------------------
+Prompts:
+- you are DevOp engineer
+- you team has a fastapi web app that uses the custom vision service to classify images of grass and weed.
+the app is writen in python
+- the code is in a github repository
+- your team needs to automate the deployment from github to azure app service
+- the team needs control of the deployment, and wants to perform the deployment manually from the cli on their local machine
+- the team wants to deploy the app to a new resource group
+- the team wants to deploy the app to a new app service plan
+- the team wants to deploy the app to a new app service
+- provide the commands to deploy the app to azure app service
+
+
+1. login
+   az login
+
+2. resource group
+    az group create \
+       --name grass-detection-web-resources-group \
+       --location westus
+
+3. create app service plan
+    az appservice plan create \
+        --name grass-detection-web-services-plan \
+        --resource-group grass-detection-web-resources-group \
+        --sku B1 \
+        --is-linux
+
+4. create the web app itself (note: this is the app service)
+    az webapp create \
+    --name grassdetectionapi \
+    --plan grass-detection-web-services-plan \
+    --resource-group grass-detection-web-resources-group \
+    --runtime "PYTHON|3.12"
+
+5. setup deployment
+https://github.com/kowusu01/GrassAndWeedClassificationAPI.git
+    az webapp deployment source config \
+    --name grassdetectionapi \
+    --resource-group grass-detection-web-resources-group \
+    --repo-url https://github.com/kowusu01/GrassAndWeedClassificationAPI.git \
+    --branch main \
+    --manual-integration
+
+5.1. environment 2 variables to be set - the only environment variables that need to be set, 
+     everything else is in the Azure Application Configuration outside this app
+    - ConfigSource=EnvironmentVariables|AzureAppConfiguration
+    - AzureConfigConnectionString=<your Azure App Configuration Connectstring>
+    
+6. set the startup command
+    az webapp config set \
+    --name grassdetectionapi \
+    --resource-group grass-detection-web-resources-group \
+    --startup-file "gunicorn -w 4 -k uvicorn.workers.UvicornWorker api:app"
+
+
+7. 8. restart the app
+az webapp restart --name grassdetectionapi --resource-group grass-detection-web-resources-group
+
+8. deploy
+    az webapp deployment source sync \
+    --name grassdetectionapi \
+    --resource-group grass-detection-web-resources-group
+
+
+
+Test the app
+---------------
+curl -X 'POST' 'http://127.0.0.1:8000/analyze/filename/test-11-all-grass.JPG' -H 'accept: application/json'
+
+
+Runnning the app
+-----------------
+local:
+ - fastapi dev app.py
+ - uvicorn app:app --reload
+azure app service startup command:
+ - gunicorn -w 4 -k uvicorn.workers.UvicornWorker api:app
+
+ Monitor logs
+ -------------
+ NOTE: app service logs works out of the box without you configuring anything, as far as I know.
+       what I noticed was that if your log file has an extention .log, the monitoring picks it up automatically.
+       .
+ cli:
+    az webapp log tail --name grassdetectionapi --resource-group grass-detection-web-resources-group
+
+
+View logs with Kudu
+----------------------
+I have not been able to get this to work, I would need to investigate further
+    https://grassdetectionapi.scm.azurewebsites.net/api/logs/docker
+    https://<app-name>.scm.<ase-name>.p.azurewebsites.net
+    what is the ase-name? app service environment name
+
+Getting the automated build has caused many days of pain. 
+- I don't want to go to either github or Azure portal to trigger the build, 
+- the build must be inittiated from the CLI.
+- so in Step 5 above, the deployment is set to manual
+- the CLI deploy seem to work, but the app service does not pick up the changes.
+- tried to sync the deployment, restart the app service but changes were not seen
+
+- So I resorted to create the App Service from the Azure portal, and then set the deployment to github
+- the build succeeded, but deployment failed,
+- build log showed that I need to set azure credential for the deploy to use,
+- run the cmd: az ad sp create-for-rbac --name azure_cicd_cred --sdk-auth
+- set the required credentials in the github secrets, and the deployment worked fine
+- I am still not happy with this, I want to be able to deploy from the CLI, but I will leave it for now
+
