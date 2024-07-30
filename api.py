@@ -56,7 +56,7 @@ def read_root():
          - string: welcome message
     """
     return {
-        "greetings": "Hello, and welcome to Azure AI Vision and Python! (v1.0.2 rev.0729:1453)"
+        "greetings": "Hello, and welcome to Azure AI Vision and Python! (v1.0.2 rev.0730:2357)"
     }
 
 
