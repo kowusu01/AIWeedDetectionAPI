@@ -5,39 +5,37 @@ from common_modules.common import constants
 from common_modules.common.common_config import Config as Config
 
 
-##########################################################################
-#
-# This is a simple wrapper class for Azure Blob Storage.
-# It is meant to simplify the usage of common Azure Blob Storage tasks.
-# Am sure there are many ways to interact with Azure Blob Storage, but
-# this is one way that addressed my issue.
-#
-# Concern:
-#  - given an azure storage account, and blob storage container,
-#    how do I upload a files to the container?
-#
-# Solution:
-#  1. create azure storage account
-#  2. create a container in the storage account
-#  3. note the following:
-#    - counainer url:
-#       https://<your_storage_account_name>.blob.core.windows.net/<continername>/
-#     - container name: <containername>
-#  4. create a shared access signature (SAS) token for the storage account
-#     for the container.
-#   - IMPORTANT: create the container with the right access level just for
-#     that container, and not for the whole storage account.
-#  5. note the sas token
-#
-# Usage:
-#  - I intentionally forced a Config class as a parameter to the constructor
-#    to encourage the configuration to be centralized in one place.
-#  - The Config class is a simple class that holds the configuration for the
-#  - the application
-###############################################################################
-
-
 class AzureBlobStorageHelper:
+    """
+    This class It is meant to simplify the usage of common Azure Blob Storage tasks.
+    Am sure there are many ways to interact with Azure Blob Storage, but
+    this is one way that addressed my issue.
+
+      Concern:
+      - given an azure storage account, and blob storage container,
+          how do I upload a files to the container?
+
+      Solution:
+      1. create azure storage account
+      2. create a container in the storage account
+      3. note the following:
+          - container url:
+          https://<your_storage_account_name>.blob.core.windows.net/<continername>/
+          - container name: <containername>
+      4. create a shared access signature (SAS) token for the storage account
+          for the container.
+      - IMPORTANT: create the container with the right access level just for
+          that container, and not for the whole storage account.
+      5. note the sas token
+
+       Usage:
+    - I intentionally forced a Config class as a parameter to the constructor
+      to encourage the configuration to be centralized in one place.
+    - The Config class is a simple class that holds the configuration for the
+    - the application
+
+    """
+
     def __init__(self, config: Config, logger: Logger):
         self.config = config
         self.logger = logger
@@ -70,7 +68,9 @@ class AzureBlobStorageHelper:
             self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_ACCOUNT_TOKEN),
         )
 
-    def read_image_with_url_anonymous(self, storage_account_url: str, filename: str)-> bytes:
+    def read_image_with_url_anonymous(
+        self, storage_account_url: str, filename: str
+    ) -> bytes:
         """
         This is the base method to read an image from an azure blob storage account.
         It is meant to be used when the blob storage account is public.
@@ -81,7 +81,7 @@ class AzureBlobStorageHelper:
         # self.logger.debug(f"image data:{image_data}")
         return image_data
 
-    def read_test_data_image_with_url_anonymous(self, filename: str)-> bytes:
+    def read_test_data_image_with_url_anonymous(self, filename: str) -> bytes:
         """
         For my specific use case, it reads an image from the default storage account.
         In this case, it reads from the test data container.
@@ -102,7 +102,7 @@ class AzureBlobStorageHelper:
         image_blob = blob_client.download_blob().readall()
         return image_blob
 
-    def read_prediction_image_with_token(self, filename: str) -> bytes:
+    def read_prediction_image(self, filename: str) -> bytes:
         self.logger.debug(
             f"reading prediction image for {filename}, {self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_CONTAINER)}"
         )
@@ -129,7 +129,7 @@ class AzureBlobStorageHelper:
         self.logger.debug(f"text data:{json_blob}")
         return json_blob
 
-    def read_prediction_details_json_with_token(self, filename: str) -> str:
+    def read_prediction_details_json(self, filename: str) -> str:
         self.logger.debug(
             f"reading prediction details for {filename}, {self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_CONTAINER)}"
         )

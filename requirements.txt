@@ -9,6 +9,9 @@
 #   - python-dotenv - for reading .env file
 python-dotenv
 
+# azure storage
+azure-storage-blob
+
 # for azure app configuration in the cloud
 azure-appconfiguration-provider
 
@@ -33,6 +36,7 @@ azure-cognitiveservices-vision-customvision
 # api related
 fastapi
 pydantic
+pytest
 uvicorn
 
 # for reasing images from url e.g. azure blob storage
