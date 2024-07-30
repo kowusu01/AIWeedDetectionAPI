@@ -84,7 +84,7 @@ def read_root(filename: str):
     # all images are stored in azure blob storage
     # given a file name, read the image from azure blob storage
     try:
-        json_data = azure_storage.read_prediction_details_json_with_token(filename)
+        json_data = azure_storage.read_prediction_details_json(filename)
         json_string = json.dumps(json_data)
         return JSONResponse(json_string)
     except Exception as e:
@@ -117,7 +117,7 @@ def read_root(filename: str):
     try:
         # all images are stored in azure blob storage
         #  given a file name, read the image from azure blob storage
-        image_file = azure_storage.read_prediction_image_with_token(filename)
+        image_file = azure_storage.read_prediction_image(filename)
         return Response(image_file, media_type="image/jpeg")
     except Exception as e:
         logger.error(f"unable to read prediction image: {e}")
