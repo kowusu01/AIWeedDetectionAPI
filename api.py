@@ -30,7 +30,7 @@ def setup_config() -> Config:
 api_description = """
 Weed/Grass Detection API helps you to determine the presence of grass and weed in an image.
 
-## What you can you with this API:
+## What you can do with this API:
 
 * **Analyze an image.**  
 Use the api interaction with AI model to detected weed or grass in an image. You can upload an image or pick one of our preselected test images.

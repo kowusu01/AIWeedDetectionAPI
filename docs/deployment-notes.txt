@@ -30,27 +30,27 @@ the app is writen in python
 
 2. resource group
     az group create \
-       --name weed-detection-web-resources-group \
+       --name weed-detection-resources-group \
        --location westus
 
 3. create app service plan
     az appservice plan create \
-        --name weed-detection-web-services-plan \
-        --resource-group weed-detection-web-resources-group \
+        --name weed-detection-services-plan \
+        --resource-group weed-detection-resources-group \
         --sku B1 \
         --is-linux
 
 4. create the web app itself (note: this is the app service)
     az webapp create \
-    --name weeddetectionapi \
-    --plan weed-detection-web-services-plan \
-    --resource-group weed-detection-web-resources-group \
+    --name aiweeddetectionapi \
+    --plan weed-detection-services-plan \
+    --resource-group weed-detection-resources-group \
     --runtime "PYTHON|3.12"
 
 5. set the startup command
     az webapp config set \
-    --name weeddetectionapi \
-    --resource-group weed-detection-web-resources-group \
+    --name aiweeddetectionapi \
+    --resource-group weed-detection-resources-group \
     --startup-file "gunicorn -w 4 -k uvicorn.workers.UvicornWorker api:app"
 
 5.1. MANUAL via portal: environment 2 variables to be set - the only environment variables that need to be set, 
@@ -59,21 +59,21 @@ the app is writen in python
     - AzureConfigConnectionString=<your Azure App Configuration Connectstring>
 
 
-6. setup deployment
+6. setup deployment from github - it performs the deployment from the github repo to the app service
     az webapp deployment source config \
-    --name weeddetectionapi \
-    --resource-group weed-detection-web-resources-group \
+    --name aiweeddetectionapi \
+    --resource-group weed-detection-resources-group \
     --repo-url https://github.com/kowusu01/AIWeedDetectionAPI.git \
     --branch main 
 
     
 7. restart the app
-az webapp restart --name weeddetectionapi --resource-group weed-detection-web-resources-group
+az webapp restart --name aiweeddetectionapi --resource-group weed-detection-resources-group
 
 8. redeploy
     az webapp deployment source sync \
     --name weeddetectionapi \
-    --resource-group weed-detection-web-resources-group
+    --resource-group weed-detection-resources-group
 
 
 
@@ -96,27 +96,30 @@ azure app service startup command:
        what I noticed was that if your log file has an extention .log, the monitoring picks it up automatically.
        .
  cli:
-    az webapp log tail --name weeddetectionapi --resource-group weed-detection-web-resources-group
+    az webapp log tail --name aiweeddetectionapi --resource-group weed-detection-resources-group
 
-
-View logs with Kudu
-----------------------
-I have not been able to get this to work, I would need to investigate further
-    https://grassdetectionapi.scm.azurewebsites.net/api/logs/docker
-    https://<app-name>.scm.<ase-name>.p.azurewebsites.net
-    what is the ase-name? app service environment name
-
-Getting the automated build has caused many days of pain. 
-- I don't want to go to either github or Azure portal to trigger the build, 
+NOTES: 
+Getting the automated build from the cli caused many days of pain. 
+- I didn't want to go to either github or Azure portal to trigger the build, 
 - the build must be inittiated from the CLI.
-- so in Step 5 above, the deployment is set to manual
-- the CLI deploy seem to work, but the app service does not pick up the changes.
-- tried to sync the deployment, restart the app service but changes were not seen
+- so in Step 5 above, I added --manual option to set the the deployment to manual
+- the cli deploy seemed to work, but the app service did does not pick up the changes after subsequent commits.
+- tried to sync the deployment, restart the app service but changes were not seen.
 
-- So I resorted to create the App Service from the Azure portal, and then set the deployment to github
-- the build succeeded, but deployment failed,
-- build log showed that I need to set azure credential for the deploy to use,
+- Finally, I removed the --manual build option from the build command and it worked,
+- the command: [az webapp deployment ...] performs the deployment, 
+  which means that if you want manual deployment, that is your last button to press
+- I am happy with this, I can now deploy from the CLI, in less than 5 minutes!
+
+Logs
+- Always check the build logs, it will tell you what is wrong
+- make sure you have the right credentials set in the github secrets for the build to work
+  you only have to set it up once for the repo, and you can use it for all the deployments from that repo
+
+Github Actions build credentials
 - run the cmd: az ad sp create-for-rbac --name azure_cicd_cred --sdk-auth
 - set the required credentials in the github secrets, and the deployment worked fine
-- I am still not happy with this, I want to be able to deploy from the CLI, but I will leave it for now
+    client-id: ${{ secrets.AZUREAPPSERVICE_CICD_CLIENTID }}
+    tenant-id: ${{ secrets.AZUREAPPSERVICE_CICD_TENANTID }}
+    subscription-id: ${{ secrets.AZUREAPPSERVICE_CICD_SUBSCRIPTIONID }}
 
