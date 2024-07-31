@@ -223,15 +223,13 @@ class GrassWeedDetector:
         # 1.  save to azure blob storage
         azure_storage_helper = AzureBlobStorageHelper(self.config, self.logger)
         self.logger.debug("azure storage helper created.")
-        azure_storage_helper.write_prediction_image_with_token(
+        azure_storage_helper.write_prediction_image(
             self.config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME)
         )
 
         self.logger.debug(
             "done saving annotated/predicted image has been saved to azure storage."
         )
-
-        self.logger.debug("creating final response object...")
 
         grass_confidence = 0.0
         weed_confidence = 0.0
@@ -281,11 +279,9 @@ class GrassWeedDetector:
             json.dump(result.to_dict(), f)
 
         self.logger.debug("saving prediction information (json) to azure storage...")
-        azure_storage_helper.read_prediction_details_json_with_token(
+        azure_storage_helper.write_prediction_details(
             self.config.get(constants.CONFIG_DEFAULT_PREDICTION_INFO_FILE_NAME)
         )
-        self.logger.debug(
-            "done saving prediction information (json) to local file system."
-        )
-        self.logger.debug("done creating final response object.")
+
+        self.logger.debug("done saving prediction information (json) to azure storage.")
         return result

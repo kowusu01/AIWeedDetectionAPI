@@ -1,9 +1,8 @@
-from datetime import datetime
-import json
 import os
 import sys
-from unittest.mock import patch
+from datetime import datetime
 
+from unittest.mock import patch
 from pydantic import Json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -30,7 +29,7 @@ class TestAzureBlobStorageHelper:
         self.mock_instance = self.MockAzureBlobStorageHelper.return_value
 
         # Define a side effect function for the mock method
-        def read_prediction_details_json_side_effect(filename: str):
+        def read_prediction_details_side_effect(filename: str):
             details = {}
             details["prediction_image_url"] = "predictions.jpg"
             details["prediction_info_url"] = "predictions.json"
@@ -39,29 +38,13 @@ class TestAzureBlobStorageHelper:
             details["summary"] = (
                 "The area analyzed is most likely all Grass with very low chance of Weed."
             )
-            details["predictions"] = [
+            details["detected_details"] = [
                 {
-                    "name": "Grass",
-                    "confidence_level": 0.98,
-                    "marked_color": ["#FF2400"],
-                    "bounding_box": {
-                        "left": 0.0,
-                        "top": 16.0,
-                        "box_width": 239.0,
-                        "box_height": 180.0,
-                    },
+                    "predictedLabel": "Grass",
+                    "confidenceLevel": 0.98,
+                    "color": "#00CC99",
                 },
-                {
-                    "name": "Weed",
-                    "confidence_level": 0.09,
-                    "marked_color": ["#D9381E"],
-                    "bounding_box": {
-                        "left": 227.0,
-                        "top": 363.0,
-                        "box_width": 332.0,
-                        "box_height": 387.0,
-                    },
-                },
+                {"predictedLabel": "Weed", "confidenceLevel": 0.09, "color": "#D9381E"},
             ]
 
             if filename == TEST_PREDICTION_DETAILS_FILENAME:
@@ -70,8 +53,8 @@ class TestAzureBlobStorageHelper:
                 return {"error": "File not found"}
 
         # Set the side effect on the mock method
-        self.mock_instance.read_prediction_details_json.side_effect = (
-            read_prediction_details_json_side_effect
+        self.mock_instance.read_prediction_details.side_effect = (
+            read_prediction_details_side_effect
         )
 
     def teardown_method(self, method):
@@ -80,7 +63,7 @@ class TestAzureBlobStorageHelper:
 
     def test_read_prediction_details_PASS(self):
         # Act
-        result = self.mock_instance.read_prediction_details_json(
+        result = self.mock_instance.read_prediction_details(
             TEST_PREDICTION_DETAILS_FILENAME
         )
 
@@ -90,9 +73,7 @@ class TestAzureBlobStorageHelper:
 
     def test_read_prediction_details_FAIL(self):
         # Act
-        result = self.mock_instance.read_prediction_details_json(
-            "invalid_filename.json"
-        )
+        result = self.mock_instance.read_prediction_details("invalid_filename.json")
 
         # Assert
         assert result == {"error": TEST_FILE_NOT_FOUND}

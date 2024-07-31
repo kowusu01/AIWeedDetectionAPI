@@ -56,7 +56,19 @@ class AzureBlobStorageHelper:
         blob_data = open(filename, "rb").read()
         return blob_client.upload_blob(blob_data, overwrite=True)
 
-    def write_prediction_image_with_token(self, filename: str):
+    def write_prediction_details(self, filename: str):
+        """
+        For my specific use case, it writes a file to a specific storage account.
+        In this case, it writes to the predictions container.
+        """
+        return self.write_blob_with_token(
+            self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_ACCOUNT),
+            self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_CONTAINER),
+            filename,
+            self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_ACCOUNT_TOKEN),
+        )
+
+    def write_prediction_image(self, filename: str):
         """
         For my specific use case, it writes a file to a specific storage account.
         In this case, it writes to the predictions container.
@@ -129,7 +141,7 @@ class AzureBlobStorageHelper:
         self.logger.debug(f"text data:{json_blob}")
         return json_blob
 
-    def read_prediction_details_json(self, filename: str) -> str:
+    def read_prediction_details(self, filename: str) -> str:
         self.logger.debug(
             f"reading prediction details for {filename}, {self.config.get(constants.CONFIG_PREDICTIONS_STORAGE_CONTAINER)}"
         )

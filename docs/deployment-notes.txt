@@ -70,7 +70,7 @@ the app is writen in python
 7. restart the app
 az webapp restart --name weeddetectionapi --resource-group weed-detection-web-resources-group
 
-8. deploy
+8. redeploy
     az webapp deployment source sync \
     --name weeddetectionapi \
     --resource-group weed-detection-web-resources-group

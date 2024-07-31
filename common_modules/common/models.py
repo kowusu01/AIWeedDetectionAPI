@@ -19,6 +19,7 @@ class MarkedDetectedArea:
             "predictedLabel": self.name,
             "confidenceLevel": self.confidence_level,
             "color": self.marked_color,
+            "boundingBox": self.bounding_box,
         }
 
 
