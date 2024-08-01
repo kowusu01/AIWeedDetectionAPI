@@ -63,7 +63,7 @@ config = setup_config()
 logger = LogHelper(config, logger_name=__name__)
 azure_storage = AzureBlobStorageHelper(config, logger)
 detector = GrassWeedDetector(config, logger)
-logger.info("app started...")
+logger.info("api started...")
 logger.info(
     f"version: {config.get(constants.CONFIG_APP_VERSION)} - ConfigSource: {config.get('ConfigSource')}"
 )
@@ -98,6 +98,7 @@ def read_root() -> JSONResponse:
     message = "Hello, and welcome to Azure AI Vision, Python, and FastApi! -  ({} rev {})".format(
         version, revision
     )
+    print(message)
     return JSONResponse(
         {"greetings": message},
         media_type="application/json",
@@ -131,16 +132,19 @@ class PredictionEndpoint:
 
             - json: json string containing the prediction details.
         """
-
+        print(f"api called for prediction details: {filename}")
         # all images are stored in azure blob storage
         # given a file name, read the image from azure blob storage
         try:
             json_data = azure_storage.read_prediction_details(filename)
             json_string = json.loads(json_data)
+            print(f"prediction details: {json_string}")
+            print(json_string)
             return JSONResponse(json_string, media_type="application/json")
         except Exception as e:
             logger.error(f"unable to read prediction details: {e}")
             logger.error(traceback.format_exc())
+            print(f"unable to read prediction details {e}")
             raise HTTPException(
                 status_code=400,
                 detail="unable to read prediction details, see logs for details.",
@@ -168,15 +172,17 @@ class PredictionEndpoint:
         Returns:
             - Image: image file
         """
-
+        print(f"api called for prediction image: {filename}")
         try:
             # all images are stored in azure blob storage
             #  given a file name, read the image from azure blob storage
             image_file = azure_storage.read_prediction_image(filename)
+            print(f"prediction image has successfully been read: {filename}")
             return Response(image_file, media_type="image/jpeg")
         except Exception as e:
             logger.error(f"unable to read prediction image: {e}")
             logger.error(traceback.format_exc())
+            print(f"unable to read prediction image: {e}")
             raise HTTPException(
                 status_code=400,
                 detail="unable to read prediction image, see logs for details.",
@@ -204,6 +210,7 @@ class PredictionEndpoint:
                 - JSONResponse: JSON response containing the prediction details.
         """
         logger.debug("/analyze/filename invoked")
+        print(f"api - /analyze/filename endpoint invoked with file: {file}")
         if not file:
             raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -211,6 +218,7 @@ class PredictionEndpoint:
 
         # analyze the image and save prediction to result to azure blob storage
         logger.debug("api - analyzing image...")
+        print("api - analyzing image...")
         return PredictionEndpoint.analyze_image(file)
 
     @staticmethod
@@ -235,6 +243,7 @@ class PredictionEndpoint:
                 - JSONResponse: JSON response containing the prediction details.
         """
         logger.debug("api - /analyze/file endpoint invoked.")
+        print("api - /analyze/file endpoint invoked.")
         if not file:
             raise HTTPException(status_code=400, detail="No file provided")
 
@@ -251,13 +260,17 @@ class PredictionEndpoint:
 
         # call the detector to analyze the image and save predictions to azure blob storage
         logger.debug("api - analyzing image...")
+        print("api - analyzing image...")
         return PredictionEndpoint.analyze_image(image)
 
     @staticmethod
     def analyze_image(image: any):
+
+        print("api - inside generic method analyze image...")
         try:
             response = detector.analyze(image, MAX_PREDICTIONS)
             logger.debug("api - analyzing image complete.")
+            print("api - analyzing image complete.")
 
             # response_json = json.dumps(response.to_dict())
             # return the prediction details without the image, needs to do a fetch to get the image
@@ -265,6 +278,7 @@ class PredictionEndpoint:
         except Exception as e:
             logger.error(f"unable to analyze image: {e}")
             logger.error(traceback.format_exc())
+            print(f"unable to analyze image: {e}")
 
             raise HTTPException(
                 status_code=400, detail="unable to analyze image, see logs for details."
