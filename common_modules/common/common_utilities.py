@@ -1,3 +1,8 @@
+import random
+import string
+import time
+
+
 def create_grass_detection_summary(
     grass_confidence: float, weed_confidence: float
 ) -> str:
@@ -40,3 +45,16 @@ def create_grass_detection_summary(
             "Always use model prediction information with care when making decisions."
         )
     return summary
+
+
+def generate_random_filename(extension: str) -> str:
+    # Generate a timestamp
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+
+    # Generate a random string of 8 characters
+    random_str = "".join(random.choices(string.ascii_letters + string.digits, k=8))
+
+    # Combine timestamp and random string to create a unique file name
+    filename = f"prediction_{timestamp}_{random_str}.{extension}"
+
+    return filename

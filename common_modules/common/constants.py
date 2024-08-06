@@ -1,11 +1,21 @@
 from enum import Enum
 
+# e.g: 1.0.0
 CONFIG_APP_VERSION = "AppVersion"
-CONFIG_CONFIG_SOURCE = "ConfigSource"
 
+
+CONFIG_CONFIG_SOURCE = "ConfigSource"
+CONFIG_APP_CONFIG_VERSION = "AppConfigVersion"  # e.g: yymmdd.timestamp
+CONFIG_APP_SOURCE_DESCR = "AppConfigDescr"
+
+# possible values for the configuration source
+# access the actual values from configuration or .env file
 CONFIG_SOURCE_ENVIRONMENT_VARIABLES = "EnvironmentVariables"
 CONFIG_SOURCE_AZURE_APP_CONFIGURATION = "AzureAppConfiguration"
+
+# if using Azure App Configuration, this is the key to read the connection string from the environment variable
 CONFING_AZURE_APP_CONFIGURATION_CONNECTION_STRING = "AzureConfigConnectionString"
+
 
 DETECTED_TYPE_GRASS = "Grass"
 DETECTED_TYPE_WEED = "Weed"

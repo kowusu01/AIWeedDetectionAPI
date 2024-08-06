@@ -17,7 +17,11 @@ from PIL import Image, ImageDraw
 from matplotlib import pyplot as plt
 
 # 3. import my own libraries
-from common_modules.common.models import GrassPredictionData, MarkedDetectedArea
+from common_modules.common.models import (
+    AnnotatedImageData,
+    GrassPredictionData,
+    MarkedDetectedArea,
+)
 from common_modules.common.common_config import Config
 from common_modules.common import constants
 
@@ -28,7 +32,7 @@ def mark_image_with_rectangle(
     config: Config,
     logger: Logger,
     markWhat: constants.DetectionType = constants.DetectionType.WEED,
-) -> List[MarkedDetectedArea]:
+) -> AnnotatedImageData:
     """
     Marks the image with rectangles around detected objects.
     It called after an image has been processed by the model
@@ -58,6 +62,7 @@ def mark_image_with_rectangle(
     draw = ImageDraw.Draw(image)
 
     color = constants.BOUNDING_BOX_COLOR_GRASS
+
     marked_areas = []
 
     count = 0
@@ -109,18 +114,13 @@ def mark_image_with_rectangle(
         marked_areas.append(marked_area)
         count += 1
 
-        # annotate box with text
-        # plt.annotate(detected_object.name, (rect.left, rect.top), backgroundcolor=color)
-
-    # save the  object to local fs
+    # save the image with the marked areas
     # Save annotated image
     plt.imshow(image)
     plt.tight_layout(pad=0)
+    fig.savefig(config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME))
+
+    annotated_image_data = AnnotatedImageData(image=image, marked_areas=marked_areas)
 
     logger.debug("--------- image processing complete. ------------")
-    logger.debug("saving local copy of the annotated/predicted image...")
-    # save to local fs
-    print(config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME))
-    fig.savefig(config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME))
-    logger.debug("local copy of the annotated/predicted image has been saved.")
-    return marked_areas
+    return annotated_image_data

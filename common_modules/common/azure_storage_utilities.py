@@ -53,7 +53,10 @@ class AzureBlobStorageHelper:
             blob_name=filename,
             credential=token,
         )
-        blob_data = open(filename, "rb").read()
+        blob_data = None
+        with open(filename, "rb") as f:
+            blob_data = f.read()
+
         return blob_client.upload_blob(blob_data, overwrite=True)
 
     def write_prediction_details(self, filename: str):

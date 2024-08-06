@@ -21,14 +21,18 @@ from msrest.authentication import ApiKeyCredentials
 
 # 3. import my own libraries
 from common_modules.common.models import (
+    AnnotatedImageData,
     GrassPredictionData,
-    GrassAnalysisResponse,
+    GrassAnalysisDetails,
     MarkedDetectedArea,
 )
 
 from common_modules.common import constants
 from common_modules.common.common_config import Config
-from common_modules.common.common_utilities import create_grass_detection_summary
+from common_modules.common.common_utilities import (
+    create_grass_detection_summary,
+    generate_random_filename,
+)
 from common_modules.common.azure_storage_utilities import AzureBlobStorageHelper
 from common_modules.image_processing.image_utilities import mark_image_with_rectangle
 
@@ -44,7 +48,7 @@ class GrassWeedDetector:
         image: any,
         top_n: int,
         detection_type: constants.DetectionType = constants.DetectionType.WEED,
-    ) -> GrassAnalysisResponse:
+    ) -> AnnotatedImageData:  # GrassAnalysisResponse:
 
         self.logger.debug("GrassDectector.analyze() - analyzing image...")
         self.logger.debug(
@@ -93,7 +97,7 @@ class GrassWeedDetector:
             "GrassDectector.analyze() - ready to call vision api for analysis."
         )
         try:
-            results = prediction_client.detect_image(
+            ai_vision_response = prediction_client.detect_image(
                 self.config.get(constants.CONFIG_PROJECT_ID),
                 self.config.get(constants.CONFIG_DEPLOYED_NAME),
                 image_data,
@@ -106,130 +110,84 @@ class GrassWeedDetector:
 
         self.logger.debug(
             "GrassDectector.analyze() - analysis complete. detected areas: {}".format(
-                len(results.predictions)
+                len(ai_vision_response.predictions)
             )
         )
-        selected_predictions = self.process_analysis_results(results, top_n)
-        predictions = mark_image_with_rectangle(
+
+        selected_predictions = self.get_top_n_predictions(
+            ai_vision_response.predictions, top_n
+        )
+
+        annotated_image_data = mark_image_with_rectangle(
             image_data, selected_predictions, self.config, self.logger, detection_type
         )
 
-        analysis_response = self.perform_post_detection_tasks(predictions)
+        analysis_details = self.perform_post_detection_tasks(
+            annotated_image_data.marked_areas
+        )
 
-        return analysis_response
+        return analysis_details
 
-    def process_analysis_results(
-        self, results, top_n: int
+    def get_top_n_predictions(
+        self, ai_vision_predictions, top_n: int
     ) -> list[GrassPredictionData]:
 
-        grass_predictions = {}
-        weed_predictions = {}
-
-        for prediction in results.predictions:
-            # self.logger.debug(prediction)
-            if prediction.tag_name == constants.DETECTED_TYPE_GRASS:
-                grass_predictions[round(prediction.probability, 2)] = (
-                    GrassPredictionData(
-                        prediction.tag_name,
-                        round(prediction.probability, 2),
-                        prediction.bounding_box,
-                    )
-                )
-            else:
-                weed_predictions[round(prediction.probability, 2)] = (
-                    GrassPredictionData(
-                        prediction.tag_name,
-                        round(prediction.probability, 2),
-                        prediction.bounding_box,
-                    )
-                )
-
-        self.logger.debug(
-            f"GrassDectector.analyze() - grass areas: {len(grass_predictions)}, weed areas: {len(weed_predictions)}"
+        # put each category of predictions in its own list
+        grass_predictions = self.filter_predictions_by_label(
+            ai_vision_predictions, constants.DETECTED_TYPE_GRASS
+        )
+        weed_predictions = self.filter_predictions_by_label(
+            ai_vision_predictions, constants.DETECTED_TYPE_WEED
         )
 
-        selected_predictions = []
-        if len(grass_predictions) == 0 and len(weed_predictions) == 0:
-            self.logger.debug(
-                "GrassDectector.analyze() - no grass or weed detected. returning empty list."
+        # now sport the predictions by confidence level
+        grass_predictions.sort(key=lambda x: x.probability, reverse=True)
+        weed_predictions.sort(key=lambda x: x.probability, reverse=True)
+
+        # now select the top n predictions
+        selected_top_grass_predictions = []
+
+        top_n = top_n if top_n > 0 else 1
+        if top_n > len(grass_predictions):
+            top_n = len(grass_predictions)
+        selected_top_grass_predictions = grass_predictions[:top_n]
+
+        if top_n > len(weed_predictions):
+            top_n = len(weed_predictions)
+        selected_top_weed_predictions = weed_predictions[:top_n]
+
+        # now combine the selected predictions
+        selected_predictions = selected_top_grass_predictions
+        selected_predictions.extend(selected_top_weed_predictions)
+
+        # convert the selected predictions to GrassPredictionData objects
+        selected_predictions = [
+            GrassPredictionData(
+                prediction.tag_name, prediction.probability, prediction.bounding_box
             )
-            return selected_predictions
+            for prediction in selected_predictions
+        ]
 
-        # attempt to select items for grass
-        if len(grass_predictions) == 0:
-            self.logger.debug("GrassDectector.analyze() - no grass detected.")
-        elif len(grass_predictions) == 1:
-            self.logger.debug(
-                "GrassDectector.analyze() - one grass detected, it will be added to the selected predictions."
-            )
-            grass_keys = list(grass_predictions.keys())
-            grass_keys.sort(reverse=True)
-            selected_predictions.append(grass_predictions[grass_keys[0]])
-        else:
-            self.logger.debug("GrassDectector.analyze() - multiple grass detected.")
-            if len(weed_predictions) == 0:
-                self.logger.debug(
-                    "GrassDectector.analyze() - no weed detected, so we pick two top grass predictions"
-                )
-                grass_keys = list(grass_predictions.keys())
-                grass_keys.sort(reverse=True)
-                selected_predictions.append(grass_predictions[grass_keys[0]])
-                selected_predictions.append(grass_predictions[grass_keys[1]])
-                return selected_predictions
-            else:
-                self.logger.debug(
-                    "GrassDectector.analyze() - weed detected, so we pick the top 1 grass prediction"
-                )
-                grass_keys = list(grass_predictions.keys())
-                grass_keys.sort(reverse=True)
-                selected_predictions.append(grass_predictions[grass_keys[0]])
-                # continue to weed selection
+        print(f"selected_predictions count: {len(selected_predictions)}")
 
-        self.logger.debug("selcted predictions: {len(selected_predictions)}")
-        # attempt to select items for weed
-        # we should max one item in the selected_predictions list
-        if len(weed_predictions) == 1:
-            weed_keys = list(weed_predictions.keys())
-            selected_predictions.append(weed_predictions[weed_keys[0]])
-        elif len(weed_predictions) > 1:
-            weed_keys = list(weed_predictions.keys())
-            weed_keys.sort(reverse=True)
-            selected_predictions.append(weed_predictions[weed_keys[0]])
-        else:
-            self.logger.debug("GrassDectector.analyze() - no weed detected.")
-            return selected_predictions
-
-        self.logger.debug(
-            f"GrassDectector.analyze() - selected predictions: {len(selected_predictions)}"
-        )
         return selected_predictions
+
+    def filter_predictions_by_label(self, predictions: any, label: str) -> any:
+        return [
+            prediction
+            for prediction in predictions
+            if prediction.tag_name.lower() == label.lower()
+        ]
 
     def perform_post_detection_tasks(
         self, marked_areas: List[MarkedDetectedArea]
-    ) -> GrassAnalysisResponse:
+    ) -> GrassAnalysisDetails:
         """
-        a copy of the image with the detected areas marked should be saved to the local file system
-        1. upload it to azure blob storage
-        2. create a detection summary
-        3. save the detection summary to the local file system
-        4. upload the detection summary to azure blob storage
+        This method performs the following tasks:
+        1. create a detection summary
+        2. upload the detection summary to azure blob storage
 
         """
-
-        self.logger.debug(
-            "saving copy of the annotated/predicted image to azure storage..."
-        )
-
-        # 1.  save to azure blob storage
-        azure_storage_helper = AzureBlobStorageHelper(self.config, self.logger)
-        self.logger.debug("azure storage helper created.")
-        azure_storage_helper.write_prediction_image(
-            self.config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME)
-        )
-
-        self.logger.debug(
-            "done saving annotated/predicted image has been saved to azure storage."
-        )
 
         grass_confidence = 0.0
         weed_confidence = 0.0
@@ -256,7 +214,7 @@ class GrassWeedDetector:
             self.config.get(constants.CONFIG_DEFAULT_PREDICTION_INFO_FILE_NAME)
         )
 
-        result = GrassAnalysisResponse(
+        analysis_details = GrassAnalysisDetails(
             predictions_image_url=self.config.get(
                 constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME
             ),
@@ -268,20 +226,28 @@ class GrassWeedDetector:
             summary=summary,
             detected_details=marked_areas,
         )
-        self.logger.debug(json.dumps(result.to_dict()))
-
-        self.logger.debug(
-            "saving prediction information (json) to local file system..."
-        )
+        prediction_details = json.dumps(analysis_details.to_dict())
+        # write the prediction details to file for later use
         with open(
             self.config.get(constants.CONFIG_DEFAULT_PREDICTION_INFO_FILE_NAME), "w"
         ) as f:
-            json.dump(result.to_dict(), f)
+            f.write(prediction_details)
+
+        self.logger.debug(prediction_details)
 
         self.logger.debug("saving prediction information (json) to azure storage...")
-        azure_storage_helper.write_prediction_details(
+
+        # use method from comoom to generate rendom file name for the prediction information
+        # random_file_name = generate_random_filename("json")
+
+        self.azure_storage_helper.write_prediction_details(
             self.config.get(constants.CONFIG_DEFAULT_PREDICTION_INFO_FILE_NAME)
         )
 
+        self.azure_storage_helper.write_prediction_image(
+            self.config.get(constants.CONFIG_DEFAULT_PREDICTION_IMAGE_FILE_NAME)
+        )
+
         self.logger.debug("done saving prediction information (json) to azure storage.")
-        return result
+
+        return analysis_details

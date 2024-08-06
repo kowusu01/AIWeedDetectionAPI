@@ -23,7 +23,13 @@ class MarkedDetectedArea:
         }
 
 
-class GrassAnalysisResponse:
+class AnnotatedImageData:
+    def __init__(self, image: any, marked_areas: list[MarkedDetectedArea]) -> None:
+        self.image = image
+        self.marked_areas = marked_areas
+
+
+class GrassAnalysisDetails:
 
     def __init__(
         self,

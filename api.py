@@ -4,11 +4,12 @@
 # objects in the image.
 #####################################################################
 
+from io import BytesIO
 import json
 from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 import traceback
 
 # import my own libraries
@@ -19,12 +20,11 @@ from common_modules.common.common_config import Config
 from common_modules.common.azure_storage_utilities import AzureBlobStorageHelper
 
 # maximum number of predictions to return
-MAX_PREDICTIONS = 2
+MAX_PREDICTIONS = 1
 
 
 def setup_config() -> Config:
-    config = Config()
-    return config
+    return Config()
 
 
 api_description = """
@@ -46,7 +46,8 @@ After an image is analyzed by the AI model, you can read back the annotated imag
 
 """
 
-api_version = "1.0.0"
+config = setup_config()
+api_version = config.get(constants.CONFIG_APP_VERSION)
 
 # global objects
 app = FastAPI(
@@ -59,14 +60,10 @@ app = FastAPI(
 default_router = APIRouter()
 prediction_router = APIRouter()
 
-config = setup_config()
 logger = LogHelper(config, logger_name=__name__)
 azure_storage = AzureBlobStorageHelper(config, logger)
 detector = GrassWeedDetector(config, logger)
 logger.info("api started...")
-logger.info(
-    f"version: {config.get(constants.CONFIG_APP_VERSION)} - ConfigSource: {config.get('ConfigSource')}"
-)
 
 # Allow CORS
 app.add_middleware(
@@ -91,12 +88,10 @@ def read_root() -> JSONResponse:
          - string: welcome message
     """
     version = f"v{api_version}"
+    config_version = config.get(constants.CONFIG_APP_CONFIG_VERSION)
 
-    # revision is date of last update.time of day
-    revision = "0730.2009"
-
-    message = "Hello, and welcome to Azure AI Vision, Python, and FastApi! -  ({} rev {})".format(
-        version, revision
+    message = "Hello, and welcome to Azure AI Vision, Python, and FastApi! -  ({} rev.{})".format(
+        version, config_version
     )
     print(message)
     return JSONResponse(
@@ -139,7 +134,6 @@ class PredictionEndpoint:
             json_data = azure_storage.read_prediction_details(filename)
             json_string = json.loads(json_data)
             print(f"prediction details: {json_string}")
-            print(json_string)
             return JSONResponse(json_string, media_type="application/json")
         except Exception as e:
             logger.error(f"unable to read prediction details: {e}")
@@ -227,7 +221,7 @@ class PredictionEndpoint:
         description="Analyze an uploaded image.",
         summary="Analyze an uploaded image.",
     )
-    async def analyze(file: UploadFile = File(...)) -> JSONResponse:
+    async def analyze(file: UploadFile = File(...)):
         """Analyze an uploaded image and return the prediction details.
 
         Args:
@@ -253,6 +247,8 @@ class PredictionEndpoint:
         image = None
         try:
             image = await file.read()
+
+            # TODO - Check if the image SIZE  too large
         except Exception as e:
             raise HTTPException(
                 status_code=400, detail="unable to analyze image, see logs for details."
@@ -264,7 +260,7 @@ class PredictionEndpoint:
         return PredictionEndpoint.analyze_image(image)
 
     @staticmethod
-    def analyze_image(image: any):
+    def analyze_image(image: any) -> JSONResponse:
 
         print("api - inside generic method analyze image...")
         try:
@@ -272,9 +268,14 @@ class PredictionEndpoint:
             logger.debug("api - analyzing image complete.")
             print("api - analyzing image complete.")
 
-            # response_json = json.dumps(response.to_dict())
+            response_json = json.dumps(response.to_dict())
+
+            # convert to string
+            response_json = json.loads(response_json)
+
             # return the prediction details without the image, needs to do a fetch to get the image
-            return JSONResponse(response.to_dict(), media_type="application/json")
+            return JSONResponse(response_json, media_type="application/json")
+
         except Exception as e:
             logger.error(f"unable to analyze image: {e}")
             logger.error(traceback.format_exc())
