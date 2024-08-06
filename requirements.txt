@@ -38,6 +38,8 @@ fastapi
 pydantic
 pytest
 uvicorn
+python-multipart
+
 
 # for reasing images from url e.g. azure blob storage
 requests
