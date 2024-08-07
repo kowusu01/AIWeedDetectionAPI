@@ -3,13 +3,11 @@
 # weed in an image. It uses the Custom Vision API to detect the
 # objects in the image.
 #####################################################################
-
-from io import BytesIO
 import json
+import os
 from fastapi import Depends, FastAPI, APIRouter, File, UploadFile, HTTPException, status
-from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 import traceback
 
 # import my own libraries
@@ -19,8 +17,9 @@ from common_modules.grass_weed_detection import GrassWeedDetector
 from common_modules.common.common_config import Config
 from common_modules.common.azure_storage_utilities import AzureBlobStorageHelper
 
-# maximum number of predictions to return
-MAX_PREDICTIONS = 1
+
+MAX_PREDICTIONS = 1  # maximum number of predictions to return
+MAX_UPLOAD_FILE_SIZE = 2 * 1024 * 1024  # max file size - 2 MB
 
 
 def setup_config() -> Config:
@@ -46,6 +45,15 @@ After an image is analyzed by the AI model, you can read back the annotated imag
 
 """
 
+
+def read_build_version():
+    version_file = "version.txt"
+    if os.path.exists(version_file):
+        with open(version_file, "r") as file:
+            return file.read().strip()
+    return ""
+
+
 config = setup_config()
 api_version = config.get(constants.CONFIG_APP_VERSION)
 
@@ -64,6 +72,16 @@ logger = LogHelper(config, logger_name=__name__)
 azure_storage = AzureBlobStorageHelper(config, logger)
 detector = GrassWeedDetector(config, logger)
 logger.info("api started...")
+
+config_source = (
+    "cloud"
+    if config.config_source == constants.CONFIG_SOURCE_AZURE_APP_CONFIGURATION
+    else "local"
+)
+
+print(
+    f"App version: {api_version}, build: {read_build_version()},  config source: {config_source}, version: {config.config_version}"
+)
 
 # Allow CORS
 app.add_middleware(
@@ -100,7 +118,37 @@ def read_root() -> JSONResponse:
     )
 
 
-MAX_UPLOAD_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
+@default_router.get(
+    "/version",
+    description="Get the application detailed version info.",
+    summary="Returns detailed application version information including build and configuration versions.",
+)
+def read_version() -> JSONResponse:
+    """Returns the details of application version including build and configuration versions.
+
+    Returns:
+
+         - string: detailed application version information
+    """
+    build_version = read_build_version()
+    config_version = config.get(constants.CONFIG_APP_CONFIG_VERSION)
+    config_source_descr = (
+        "cloud"
+        if config.config_source == constants.CONFIG_SOURCE_AZURE_APP_CONFIGURATION
+        else "local"
+    )
+    print(api_version, build_version, config_version, config_source_descr)
+    version_info = {
+        "app_version": api_version,
+        "build": build_version,
+        "config": config_version,
+        "config_source": config_source_descr,
+    }
+
+    return JSONResponse(
+        version_info,
+        media_type="application/json",
+    )
 
 
 class PredictionEndpoint:

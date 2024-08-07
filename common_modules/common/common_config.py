@@ -16,10 +16,7 @@ class Config:
         self.config_source_descr = None
         self.config_version = None
         self.setup()
-        print(
-            f"App version: {self.app_version}, config source: {self.config_source_descr}, - version: {self.config_version}"
-        )
-
+        
     def setup(self):
         # setup environment variables as a source by default
         load_dotenv()
