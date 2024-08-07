@@ -6,7 +6,7 @@
 
 from io import BytesIO
 import json
-from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException
+from fastapi import Depends, FastAPI, APIRouter, File, UploadFile, HTTPException, status
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -98,6 +98,9 @@ def read_root() -> JSONResponse:
         {"greetings": message},
         media_type="application/json",
     )
+
+
+MAX_UPLOAD_FILE_SIZE = 2 * 1024 * 1024  # 2 MB
 
 
 class PredictionEndpoint:
@@ -248,12 +251,16 @@ class PredictionEndpoint:
         try:
             image = await file.read()
 
-            # TODO - Check if the image SIZE  too large
         except Exception as e:
             raise HTTPException(
                 status_code=400, detail="unable to analyze image, see logs for details."
             )
 
+        if len(image) > MAX_UPLOAD_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File size should not exceed {MAX_UPLOAD_FILE_SIZE/ (1024*1024)} MB",
+            )
         # call the detector to analyze the image and save predictions to azure blob storage
         logger.debug("api - analyzing image...")
         print("api - analyzing image...")
