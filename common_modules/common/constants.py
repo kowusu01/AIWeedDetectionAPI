@@ -1,7 +1,8 @@
 from enum import Enum
 
 # e.g: 1.0.0
-CONFIG_APP_VERSION = "AppVersion"
+CONFIG_APP_VERSION = "ApiVersion"
+CONFIG_API_BUILID_DATE = "ApiBuildDate"
 
 
 CONFIG_CONFIG_SOURCE = "ConfigSource"

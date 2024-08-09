@@ -46,16 +46,9 @@ After an image is analyzed by the AI model, you can read back the annotated imag
 """
 
 
-def read_build_version():
-    version_file = "version.txt"
-    if os.path.exists(version_file):
-        with open(version_file, "r") as file:
-            return file.read().strip()
-    return ""
-
-
 config = setup_config()
 api_version = config.get(constants.CONFIG_APP_VERSION)
+api_build_date = config.get(constants.CONFIG_API_BUILID_DATE)
 
 # global objects
 app = FastAPI(
@@ -73,14 +66,10 @@ azure_storage = AzureBlobStorageHelper(config, logger)
 detector = GrassWeedDetector(config, logger)
 logger.info("api started...")
 
-config_source = (
-    "cloud"
-    if config.config_source == constants.CONFIG_SOURCE_AZURE_APP_CONFIGURATION
-    else "local"
-)
+config_source = config.get(constants.CONFIG_APP_SOURCE_DESCR)
 
 print(
-    f"App version: {api_version}, build: {read_build_version()},  config source: {config_source}, version: {config.config_version}"
+    f"App version: {api_version}, build: {api_build_date},  config source: {config_source}, version: {config.config_version}"
 )
 
 # Allow CORS
@@ -130,17 +119,13 @@ def read_version() -> JSONResponse:
 
          - string: detailed application version information
     """
-    build_version = read_build_version()
+
     config_version = config.get(constants.CONFIG_APP_CONFIG_VERSION)
-    config_source_descr = (
-        "cloud"
-        if config.config_source == constants.CONFIG_SOURCE_AZURE_APP_CONFIGURATION
-        else "local"
-    )
-    print(api_version, build_version, config_version, config_source_descr)
+    config_source_descr = config.get(constants.CONFIG_APP_SOURCE_DESCR)
+    print(api_version, api_build_date, config_version, config_source_descr)
     version_info = {
         "app_version": api_version,
-        "build": build_version,
+        "build": api_build_date,
         "config": config_version,
         "config_source": config_source_descr,
     }
