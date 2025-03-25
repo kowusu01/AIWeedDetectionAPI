@@ -9,11 +9,7 @@
 #   - python-dotenv - for reading .env file
 python-dotenv
 
-# azure storage
-azure-storage-blob
 
-# for azure app configuration in the cloud
-azure-appconfiguration-provider
 
 # for local image processing
 matplotlib
@@ -26,6 +22,9 @@ pillow
 # for azure Identity
 azure-identity
 azure-storage-blob
+
+# for azure app configuration in the cloud
+azure-appconfiguration-provider
 
 # VISION SDK
 # - training image classification model using Azure AI Custom Vision - lab-17-image-classification
@@ -41,5 +40,5 @@ uvicorn
 python-multipart
 
 
-# for reasing images from url e.g. azure blob storage
+# for reading images from url e.g. azure blob storage
 requests

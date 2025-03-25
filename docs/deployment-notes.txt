@@ -149,7 +149,8 @@ Logs
   you only have to set it up once for the repo, and you can use it for all the deployments from that repo
 
 Github Actions build credentials
-- run the cmd: az ad sp create-for-rbac --name azure_cicd_cred --sdk-auth
+az ad sp create-for-rbac --name azure_cicd_cred --sdk-auth
+
 - set the required credentials in the github secrets, and the deployment worked fine
     client-id: ${{ secrets.AZUREAPPSERVICE_CICD_CLIENTID }}
     tenant-id: ${{ secrets.AZUREAPPSERVICE_CICD_TENANTID }}
@@ -157,3 +158,18 @@ Github Actions build credentials
 
 
 curl -X 'GET' 'https://aiweeddetectionapi.azurewebsites.net/'  -H 'accept: application/json'
+
+Custom domain names
+Adding  custom domain names to the app service is one step.
+- one CNAME record in the DNS settings of the domain name provider is needed
+- start the process from the Azure portal, and follow the steps
+- copy the value provided to your domain provide e.g. GoDaddy. 
+- e.g. 
+  - in Godaddy, go to the DNS settings, 
+  - add new record
+   - enter the custom domain name 
+       e.g. enter api if your custom is api.yourdmain.com
+  - enter the value provided by Azure, usually the default app service domain provided by Azure
+  - save the record
+- back in Azure, click on the validate button, and the custom domain name should be added to the app service
+
