@@ -160,16 +160,23 @@ az ad sp create-for-rbac --name azure_cicd_cred --sdk-auth
 curl -X 'GET' 'https://aiweeddetectionapi.azurewebsites.net/'  -H 'accept: application/json'
 
 Custom domain names
+---------------------
 Adding  custom domain names to the app service is one step.
-- one CNAME record in the DNS settings of the domain name provider is needed
-- start the process from the Azure portal, and follow the steps
-- copy the value provided to your domain provide e.g. GoDaddy. 
-- e.g. 
-  - in Godaddy, go to the DNS settings, 
+1. go to Domain and add custom domains
+   - if domain is hosted by third party like GoDaddy, 
+    choose All other domains
+
+2. enter the domain name you want to use. if you want to use a subdomain e.g. test.mydomain.com,
+   enter it that
+   - you get CNAME AND TXT records
+   
+3. Go to Godaddy and find that domain and go to the DNS settings, 
   - add new record
-   - enter the custom domain name 
-       e.g. enter api if your custom is api.yourdmain.com
-  - enter the value provided by Azure, usually the default app service domain provided by Azure
+  - for CNAME, enter just the subdomain name or the domain name without the .com 
+    e.g. enter just 'api' if you are using a subdomain like api.yourdmain.com
+  - copy the value provided from Azure for the CNAME and add it to GoDaddy. 
+  - enter the custom domain name 
   - save the record
-- back in Azure, click on the validate button, and the custom domain name should be added to the app service
+4. now back in Azure, click on the validate button, and the custom domain name should be added to the app service
+
 
